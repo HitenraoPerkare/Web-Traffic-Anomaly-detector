@@ -1,5 +1,5 @@
 // Base URL referencing the Flask backend
-const ADMIN_API_BASE = (typeof BACKEND_URL !== 'undefined' ? BACKEND_URL : 'http://127.0.0.1:5000') + '/api/admin';
+const ADMIN_API_BASE = (typeof BACKEND_URL !== 'undefined' ? BACKEND_URL : 'https://web-traffic-anomaly-detector.onrender.com') + '/api/admin';
 
 // --- Admin Geolocation & Device Time Management ---
 let adminLongitude = null;
@@ -91,7 +91,7 @@ try {
                     },
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 return ` Traffic: ${context.parsed.y.toFixed(2)} req/sec`;
                             }
                         }
@@ -144,17 +144,17 @@ try {
 
 function updateChart(reqPerSec) {
     if (!trafficChart) return;
-    
+
     // Label using exact numeric seconds elapsed (0s, 3s, 6s, 9s...)
     const numericLabel = `${secondsElapsed}s`;
     trafficChart.data.labels.push(numericLabel);
     trafficChart.data.datasets[0].data.push(reqPerSec);
-    
+
     if (trafficChart.data.labels.length > MAX_DATA_POINTS) {
         trafficChart.data.labels.shift();
         trafficChart.data.datasets[0].data.shift();
     }
-    
+
     trafficChart.update();
     secondsElapsed += 3;
 }
@@ -164,9 +164,9 @@ async function fetchMetrics() {
     try {
         const response = await fetch(`${ADMIN_API_BASE}/metrics`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
+
         const data = await response.json();
-        
+
         // Update connection status
         const connBadge = document.getElementById('connection-status');
         if (connBadge) {
@@ -184,7 +184,7 @@ async function fetchMetrics() {
                 if (mode === 'attack') alertClass = 'alert-danger';
                 else if (mode === 'error') alertClass = 'alert-warning';
                 else if (mode === 'high-freq') alertClass = 'alert-primary';
-                
+
                 genBox.className = `alert py-1 text-center ${alertClass}`;
                 genText.innerText = `RUNNING (${mode.toUpperCase()})`;
             } else {
@@ -207,12 +207,12 @@ async function fetchMetrics() {
 
         if (reqSecElem) reqSecElem.innerText = reqSec.toFixed(2);
         if (errRateElem) errRateElem.innerText = (errRate * 100).toFixed(1) + '%';
-        
+
         if (riskBadge) {
             riskBadge.innerText = riskLevel;
             riskBadge.className = `py-2 rounded risk-${riskLevel}`;
         }
-        
+
         if (anomalyElem) anomalyElem.innerText = anomalyScore.toFixed(3);
 
         // Push new value to smooth spline chart
@@ -253,10 +253,10 @@ async function fetchMetrics() {
                     const isAttack = (req.classification === 'ATTACK');
                     const itemClass = isAttack ? 'list-group-item-danger' : 'list-group-item-light';
                     const statusBadgeClass = req.status >= 500 ? 'bg-danger' : req.status >= 400 ? 'bg-warning text-dark' : 'bg-success';
-                    const clfBadge = isAttack 
-                        ? `<span class="badge bg-danger ms-1">ATTACK ${((req.prob || 0) * 100).toFixed(0)}%</span>` 
+                    const clfBadge = isAttack
+                        ? `<span class="badge bg-danger ms-1">ATTACK ${((req.prob || 0) * 100).toFixed(0)}%</span>`
                         : `<span class="badge bg-success ms-1">BENIGN</span>`;
-                    
+
                     const reqTime = formatAdminTime(req.time);
 
                     requestList.innerHTML += `
