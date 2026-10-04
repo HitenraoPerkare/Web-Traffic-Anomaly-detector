@@ -1,34 +1,64 @@
+"""
+Shared Request-Level HTTP Feature Extraction Module.
+
+Extracts security and structural features from HTTP requests (both CSIC dataset records
+and live Flask incoming requests) for the Random Forest attack classifier.
+"""
+
 import re
 import math
 import urllib.parse
-from typing import Dict, Any, Union
-import pandas as pd
-import numpy as np
+from typing import Dict, Any, List
 
-# Pre-compiled regex patterns for performance
+# Compiled attack signatures
 SQL_KEYWORDS = re.compile(
-    r'\b(select|union|insert|update|delete|drop|from|where|or\s+[\'"]?\d+[\'"]?\s*=\s*[\'"]?\d+|table|information_schema|waitfor\s+delay|sleep|benchmark|load_file|into\s+outfile)\b|--|\/\*|\*\/',
+    r'\b(select|union|insert|update|delete|drop|from|where|or\s+[\'\"(]?\d+[\'\")]?\s*=\s*[\'\"(]?\d+|table|information_schema|benchmark|sleep|into\s+outfile|load_file|waitfor\s+delay)\b|--|\/\*|\*\/',
     re.IGNORECASE
 )
 
 XSS_KEYWORDS = re.compile(
-    r'(<\s*script|javascript\s*:|<\s*img[^>]+onerror|<\s*svg[^>]+onload|alert\s*\(|prompt\s*\(|confirm\s*\(|document\.cookie|<iframe|<embed|<object)',
+    r'<\s*script|javascript\s*:|<\s*img[^>]+onerror|<\s*svg[^>]+onload|alert\s*\(|prompt\s*\(|confirm\s*\(|document\.cookie|<iframe|<embed|<object',
     re.IGNORECASE
 )
 
 TRAVERSAL_KEYWORDS = re.compile(
-    r'(\.\./|\.\.\\|/etc/passwd|win\.ini|boot\.ini|windows/system32)',
+    r'\.\./|\.\.\\|/etc/passwd|win\.ini|windows/system32|boot\.ini|cmd\.exe',
     re.IGNORECASE
 )
 
 SYSTEM_KEYWORDS = re.compile(
-    r'\b(cmd\.exe|/bin/sh|/bin/bash|powershell|wget|curl|chmod|chown)\b|(\|\s*\w+)|(`.+`)',
+    r'\b(cmd\.exe|/bin/sh|/bin/bash|powershell|wget|curl)\b|(\|\s*\w+)|(`.+`)',
     re.IGNORECASE
 )
 
+ENCODED_ATTACK_REGEX = re.compile(
+    r'%27|%22|%3c|%3e|%3b|%28|%29|%2f|%5c|%00',
+    re.IGNORECASE
+)
+
+FEATURE_NAMES = [
+    'sqli_matches',
+    'xss_matches',
+    'traversal_matches',
+    'system_matches',
+    'quote_single_cnt',
+    'quote_double_cnt',
+    'semicolon_cnt',
+    'dash_cnt',
+    'angle_bracket_cnt',
+    'parenthesis_cnt',
+    'encoded_attack_cnt',
+    'payload_entropy',
+    'max_param_len',
+    'total_length',
+    'special_char_ratio',
+    'is_get',
+    'is_post'
+]
+
 
 def calculate_entropy(text: str) -> float:
-    """Calculate Shannon entropy of a string."""
+    """Computes Shannon entropy of a string."""
     if not text:
         return 0.0
     prob_dist = [text.count(c) / len(text) for c in set(text)]
@@ -37,127 +67,75 @@ def calculate_entropy(text: str) -> float:
 
 def extract_features_from_dict(req: Dict[str, Any]) -> Dict[str, float]:
     """
-    Extract features from a normalized request dictionary.
+    Extracts security and structural features from a normalized request dictionary.
     
     Expected keys:
       - method: str ('GET', 'POST', etc.)
-      - path: str (e.g. '/search' or '/tienda1/index.jsp')
-      - query: str (query string without leading '?', e.g. 'id=1&q=test')
-      - body: str (request body content, e.g. 'user=admin&pass=123')
+      - path: str ('/products', '/search', etc.)
+      - query: str ('category=books&page=1', 'q=test', etc.)
+      - body: str ('username=alice&password=123', etc.)
     """
     method = str(req.get('method', 'GET')).upper()
-    path = str(req.get('path', ''))
+    path = str(req.get('path', '/'))
     query = str(req.get('query', ''))
     body = str(req.get('body', ''))
 
-    # Decoded variants
-    try:
-        decoded_query = urllib.parse.unquote_plus(query)
-    except Exception:
-        decoded_query = query
-        
-    try:
-        decoded_body = urllib.parse.unquote_plus(body)
-    except Exception:
-        decoded_body = body
-
     full_payload = f"{path} {query} {body}"
-    decoded_payload = f"{path} {decoded_query} {decoded_body}"
+    try:
+        decoded_payload = urllib.parse.unquote_plus(full_payload)
+    except Exception:
+        decoded_payload = full_payload
 
-    path_len = len(path)
-    query_len = len(query)
-    body_len = len(body)
-    total_len = len(full_payload)
+    # Signature hits
+    sqli_hits = len(SQL_KEYWORDS.findall(decoded_payload))
+    xss_hits = len(XSS_KEYWORDS.findall(decoded_payload))
+    trav_hits = len(TRAVERSAL_KEYWORDS.findall(decoded_payload))
+    if '~' in path or '.bak' in path or '.old' in path:
+        trav_hits += 1
+    sys_hits = len(SYSTEM_KEYWORDS.findall(decoded_payload))
+    encoded_hits = len(ENCODED_ATTACK_REGEX.findall(full_payload))
 
-    # Entropy
-    query_entropy = calculate_entropy(decoded_query)
-    payload_entropy = calculate_entropy(decoded_payload)
+    # Punctuation & delimiter counts
+    quote_single = decoded_payload.count("'")
+    quote_double = decoded_payload.count('"')
+    semicolons = decoded_payload.count(';')
+    dashes = full_payload.count('--')
+    angle_brackets = decoded_payload.count('<') + decoded_payload.count('>')
+    parentheses = decoded_payload.count('(') + decoded_payload.count(')')
 
-    # Character counts & frequencies on decoded payload
-    quote_single_cnt = decoded_payload.count("'")
-    quote_double_cnt = decoded_payload.count('"')
-    semicolon_cnt = decoded_payload.count(';')
-    dash_cnt = decoded_payload.count('-')
-    angle_bracket_cnt = decoded_payload.count('<') + decoded_payload.count('>')
-    parenthesis_cnt = decoded_payload.count('(') + decoded_payload.count(')')
-    slash_cnt = decoded_payload.count('/') + decoded_payload.count('\\')
-    percent_cnt = full_payload.count('%')
-    equal_cnt = decoded_payload.count('=')
-    ampersand_cnt = decoded_payload.count('&')
-    dot_cnt = decoded_payload.count('.')
+    # Parameter value lengths
+    params = []
+    if query:
+        params.extend(query.split('&'))
+    if body:
+        params.extend(body.split('&'))
+    val_lens = [len(p.split('=', 1)[1]) if '=' in p else len(p) for p in params]
+    max_val_len = max(val_lens) if val_lens else 0
 
-    digits_cnt = sum(c.isdigit() for c in decoded_payload)
-    letters_cnt = sum(c.isalpha() for c in decoded_payload)
-    special_cnt = total_len - digits_cnt - letters_cnt
+    tot_len = len(full_payload)
+    entropy = calculate_entropy(decoded_payload)
 
-    special_char_ratio = (special_cnt / total_len) if total_len > 0 else 0.0
-    digit_ratio = (digits_cnt / total_len) if total_len > 0 else 0.0
-
-    # Signature counts
-    sqli_matches = len(SQL_KEYWORDS.findall(decoded_payload))
-    xss_matches = len(XSS_KEYWORDS.findall(decoded_payload))
-    traversal_matches = len(TRAVERSAL_KEYWORDS.findall(decoded_payload))
-    system_matches = len(SYSTEM_KEYWORDS.findall(decoded_payload))
-
-    # Parameter counts
-    param_count = ampersand_cnt + 1 if (query_len > 0 or body_len > 0) else 0
+    # Special characters ratio (excluding standard URL & web characters: space, /, ., -, _, =, &, @, +, :)
+    allowed_standard = (' ', '/', '.', '-', '_', '=', '&', '@', '+', ':')
+    special_cnt = sum(1 for c in decoded_payload if not c.isalnum() and c not in allowed_standard)
+    special_ratio = special_cnt / tot_len if tot_len > 0 else 0.0
 
     return {
-        'path_length': float(path_len),
-        'query_length': float(query_len),
-        'body_length': float(body_len),
-        'total_length': float(total_len),
-        'payload_entropy': float(payload_entropy),
-        'query_entropy': float(query_entropy),
-        'quote_single_cnt': float(quote_single_cnt),
-        'quote_double_cnt': float(quote_double_cnt),
-        'semicolon_cnt': float(semicolon_cnt),
-        'dash_cnt': float(dash_cnt),
-        'angle_bracket_cnt': float(angle_bracket_cnt),
-        'parenthesis_cnt': float(parenthesis_cnt),
-        'slash_cnt': float(slash_cnt),
-        'percent_cnt': float(percent_cnt),
-        'equal_cnt': float(equal_cnt),
-        'ampersand_cnt': float(ampersand_cnt),
-        'dot_cnt': float(dot_cnt),
-        'special_char_ratio': float(special_char_ratio),
-        'digit_ratio': float(digit_ratio),
-        'param_count': float(param_count),
-        'sqli_matches': float(sqli_matches),
-        'xss_matches': float(xss_matches),
-        'traversal_matches': float(traversal_matches),
-        'system_matches': float(system_matches),
+        'sqli_matches': float(sqli_hits),
+        'xss_matches': float(xss_hits),
+        'traversal_matches': float(trav_hits),
+        'system_matches': float(sys_hits),
+        'quote_single_cnt': float(quote_single),
+        'quote_double_cnt': float(quote_double),
+        'semicolon_cnt': float(semicolons),
+        'dash_cnt': float(dashes),
+        'angle_bracket_cnt': float(angle_brackets),
+        'parenthesis_cnt': float(parentheses),
+        'encoded_attack_cnt': float(encoded_hits),
+        'payload_entropy': float(round(entropy, 4)),
+        'max_param_len': float(max_val_len),
+        'total_length': float(tot_len),
+        'special_char_ratio': float(round(special_ratio, 4)),
         'is_get': 1.0 if method == 'GET' else 0.0,
-        'is_post': 1.0 if method == 'POST' else 0.0,
-        'is_other_method': 1.0 if method not in ('GET', 'POST') else 0.0
+        'is_post': 1.0 if method == 'POST' else 0.0
     }
-
-
-FEATURE_NAMES = [
-    'path_length', 'query_length', 'body_length', 'total_length',
-    'payload_entropy', 'query_entropy',
-    'quote_single_cnt', 'quote_double_cnt', 'semicolon_cnt', 'dash_cnt',
-    'angle_bracket_cnt', 'parenthesis_cnt', 'slash_cnt', 'percent_cnt',
-    'equal_cnt', 'ampersand_cnt', 'dot_cnt',
-    'special_char_ratio', 'digit_ratio', 'param_count',
-    'sqli_matches', 'xss_matches', 'traversal_matches', 'system_matches',
-    'is_get', 'is_post', 'is_other_method'
-]
-
-
-def extract_features_from_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Vectorized/batched feature extraction for a Pandas dataframe of requests.
-    Expects df with columns: 'method', 'path', 'query', 'body'
-    """
-    records = []
-    for _, row in df.iterrows():
-        req_dict = {
-            'method': row.get('method', 'GET'),
-            'path': row.get('path', ''),
-            'query': row.get('query', ''),
-            'body': row.get('body', '')
-        }
-        records.append(extract_features_from_dict(req_dict))
-    
-    return pd.DataFrame(records, columns=FEATURE_NAMES)

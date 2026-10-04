@@ -13,7 +13,7 @@ instance/*.db
 *.sqlite3
 
 # Large dataset & model artifacts
-ml_training/data/csic_database.csv
+ml_training/data/*.csv
 models/*.pkl
 
 # OS & IDE files
