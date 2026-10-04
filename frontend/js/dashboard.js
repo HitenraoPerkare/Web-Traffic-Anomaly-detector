@@ -1,5 +1,6 @@
 // Base URL referencing the Flask backend
-const ADMIN_API_BASE = (typeof BACKEND_URL !== 'undefined' ? BACKEND_URL : 'https://web-traffic-anomaly-detector.onrender.com') + '/api/admin';
+let ADMIN_API_BASE = (typeof BACKEND_URL !== 'undefined' ? BACKEND_URL : (typeof getLocalBackendUrl === 'function' ? getLocalBackendUrl() : 'http://127.0.0.1:5000')) + '/api/admin';
+
 
 // --- Admin Geolocation & Device Time Management ---
 let adminLongitude = null;
@@ -162,7 +163,22 @@ function updateChart(reqPerSec) {
 // --- Dashboard Polling ---
 async function fetchMetrics() {
     try {
-        const response = await fetch(`${ADMIN_API_BASE}/metrics`);
+        let response;
+        try {
+            response = await fetch(`${ADMIN_API_BASE}/metrics`);
+        } catch (fetchErr) {
+            if (typeof FALLBACK_BACKEND_URL !== 'undefined' && FALLBACK_BACKEND_URL) {
+                const fallbackAdmin = FALLBACK_BACKEND_URL + '/api/admin';
+                if (ADMIN_API_BASE !== fallbackAdmin) {
+                    response = await fetch(`${fallbackAdmin}/metrics`);
+                    ADMIN_API_BASE = fallbackAdmin;
+                } else {
+                    throw fetchErr;
+                }
+            } else {
+                throw fetchErr;
+            }
+        }
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
         const data = await response.json();

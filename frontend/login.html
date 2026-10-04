@@ -123,11 +123,37 @@
             loginBtn.innerText = 'Authenticating...';
 
             try {
-                const response = await fetch(`${BACKEND_URL}/api/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
+                let response;
+                let fetchError = null;
+
+                try {
+                    response = await fetch(`${BACKEND_URL}/api/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                } catch (primaryErr) {
+                    fetchError = primaryErr;
+                    // If primary failed and fallback is available, try fallback (e.g. switch between local & cloud)
+                    if (typeof FALLBACK_BACKEND_URL !== 'undefined' && FALLBACK_BACKEND_URL && BACKEND_URL !== FALLBACK_BACKEND_URL) {
+                        try {
+                            loginBtn.innerText = 'Connecting to fallback server...';
+                            response = await fetch(`${FALLBACK_BACKEND_URL}/api/login`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ username, password })
+                            });
+                            BACKEND_URL = FALLBACK_BACKEND_URL; // Update active backend
+                            fetchError = null;
+                        } catch (fallbackErr) {
+                            fetchError = fallbackErr;
+                        }
+                    }
+                }
+
+                if (fetchError || !response) {
+                    throw fetchError || new Error("Failed to reach server");
+                }
 
                 const data = await response.json();
 
@@ -153,7 +179,7 @@
                 }
             } catch (err) {
                 console.error("Login request failed:", err);
-                errorMsg.innerText = 'Connection error: Unable to reach the server. Is the backend running?';
+                errorMsg.innerHTML = '<strong>Connection error:</strong> Unable to reach the backend server.<br><small class="text-muted">Ensure local Flask is running (<code>python run.py</code>) or that you have an internet connection to the cloud backend.</small>';
                 errorMsg.style.display = 'block';
                 loginBtn.disabled = false;
                 loginBtn.innerText = 'Sign In';
