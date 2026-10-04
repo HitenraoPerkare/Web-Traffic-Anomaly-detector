@@ -5,7 +5,7 @@
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.4%2B-orange.svg)](https://scikit-learn.org/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-purple.svg)](https://getbootstrap.com/)
 [![Chart.js](https://img.shields.io/badge/Chart.js-4.x-ff6384.svg)](https://www.chartjs.org/)
-[![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
+
 
 An end-to-end, dual-engine web security platform and interactive traffic monitoring system. It combines **supervised payload classification** (Random Forest trained on the CSIC 2010 dataset) with **unsupervised behavioral anomaly detection** (Isolation Forest over 10-second sliding windows) to protect web applications against web exploits (SQL Injection, XSS, Path Traversal) and behavioral traffic anomalies (DoS floods, fuzzing, automated scraping).
 
@@ -377,11 +377,10 @@ Run <code>netstat -ano | findstr :5000</code> in PowerShell to locate the PID, t
 
 ## 👥 Contributors & Academic Context
 
-Developed as a capstone project for **Data Engineering & Visualization Laboratory (DE&VL)**:
+Developed as a capstone project for **Data Exploration & Visualization Laboratory (DE&VL)**:
 - **Focus Areas:** Real-time stream processing, feature engineering, hybrid supervised/unsupervised machine learning, and SecOps dashboard visualization.
 - **Supervision & Tools:** Built and evaluated with Python, scikit-learn, Flask, Chart.js, and Google Antigravity.
 
 ---
 
-## 📄 License
-This project is open-source and available under the [MIT License](LICENSE).
+
