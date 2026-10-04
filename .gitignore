@@ -1,0 +1,23 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# SQLite databases
+instance/*.db
+*.sqlite3
+
+# Large dataset & model artifacts
+ml_training/data/csic_database.csv
+models/*.pkl
+
+# OS & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
