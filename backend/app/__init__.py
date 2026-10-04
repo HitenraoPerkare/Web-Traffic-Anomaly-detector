@@ -37,5 +37,9 @@ def create_app():
     # Setup middleware
     from app.middleware import init_middleware
     init_middleware(app)
+    
+    # Start aggregator thread
+    from app.aggregator import start_aggregator
+    start_aggregator(app)
 
     return app
