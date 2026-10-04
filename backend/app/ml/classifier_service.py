@@ -66,9 +66,32 @@ class ClassifierService:
             # Class 1 is attack
             proba = float(probas[1]) if len(probas) > 1 else float(pred_label)
             
+        # Domain-guided calibration:
+        # Check if the request contains any actual attack indicators, payload delimiters, or suspicious syntax
+        has_attack_indicators = (
+            features.get('sqli_matches', 0) > 0 or
+            features.get('xss_matches', 0) > 0 or
+            features.get('traversal_matches', 0) > 0 or
+            features.get('system_matches', 0) > 0 or
+            features.get('encoded_attack_cnt', 0) > 0 or
+            features.get('quote_single_cnt', 0) > 0 or
+            features.get('dash_cnt', 0) > 0 or
+            features.get('angle_bracket_cnt', 0) > 0 or
+            features.get('semicolon_cnt', 0) > 0 or
+            features.get('special_char_ratio', 0) >= 0.08
+        )
+
+        if not has_attack_indicators:
+            # Clean request with zero attack signatures or syntax anomalies
+            final_classification = 'BENIGN'
+            final_prob = min(proba, 0.15)
+        else:
+            final_classification = 'ATTACK' if (pred_label == 1 or proba >= 0.5) else 'BENIGN'
+            final_prob = proba
+
         return {
-            'classification': 'ATTACK' if pred_label == 1 else 'BENIGN',
-            'attack_probability': round(proba, 4),
+            'classification': final_classification,
+            'attack_probability': round(final_prob, 4),
             'features': features
         }
 

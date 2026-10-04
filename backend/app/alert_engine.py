@@ -25,7 +25,8 @@ class AlertEngine:
                 return None
                 
         # Generate alert
-        description = f"High traffic risk detected (Score: {risk_score:.2f}). Metrics: Req/s: {window_metrics.get('req_per_sec', 0)}, Error Rate: {window_metrics.get('error_rate', 0):.2f}%"
+        req_sec = window_metrics.get('requests_per_second', window_metrics.get('req_per_sec', 0.0))
+        description = f"High traffic risk detected (Score: {risk_score:.2f}). Metrics: Req/s: {req_sec:.2f}, Error Rate: {window_metrics.get('error_rate', 0):.2f}%"
         
         alert = Alert(
             alert_type=alert_type,

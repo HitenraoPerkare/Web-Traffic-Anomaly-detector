@@ -16,8 +16,8 @@ def init_middleware(app):
 
     @app.after_request
     def log_request(response):
-        # Skip logging for static files and favicon
-        if request.path.startswith('/static') or request.path == '/favicon.ico':
+        # Skip logging for static files, favicon, and internal admin/monitoring endpoints
+        if request.path.startswith('/static') or request.path == '/favicon.ico' or request.path.startswith('/api/admin'):
             return response
             
         # Calculate response time

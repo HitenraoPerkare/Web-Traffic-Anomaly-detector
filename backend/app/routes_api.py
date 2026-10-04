@@ -17,7 +17,39 @@ def search():
 
 @api_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    return jsonify({"status": "success", "message": "Login attempt tracked"})
+    if request.method == 'GET':
+        return jsonify({"status": "success", "message": "Login page visit tracked"})
+
+    # Extract credentials from JSON or Form body
+    data = request.get_json(silent=True) or request.form or {}
+    username = str(data.get('username', '')).strip()
+    password = str(data.get('password', '')).strip()
+
+    # 1. Admin login credentials
+    if username == "admin" and password == "admin123":
+        return jsonify({
+            "status": "success",
+            "role": "admin",
+            "username": "admin",
+            "redirect": "admin.html",
+            "message": "Admin login successful! Redirecting to SecOps Dashboard..."
+        }), 200
+
+    # 2. User login credentials
+    if username == "user@try" and password == "user123":
+        return jsonify({
+            "status": "success",
+            "role": "user",
+            "username": "user@try",
+            "redirect": "index.html",
+            "message": "User login successful! Redirecting to Storefront..."
+        }), 200
+
+    # 3. Invalid credentials
+    return jsonify({
+        "status": "error",
+        "message": "Invalid username or password"
+    }), 401
 
 @api_bp.route('/contact', methods=['GET', 'POST'])
 def contact():

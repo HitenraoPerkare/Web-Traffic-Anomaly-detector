@@ -42,7 +42,33 @@ class TrafficAggregator:
                     requests_to_process.append(request_buffer.popleft())
                     
             if not requests_to_process:
-                # No traffic in this window
+                # If previous window had traffic or risk, record a cooldown window so UI recovers
+                last_win = db.session.query(TrafficWindow).order_by(TrafficWindow.id.desc()).first()
+                if last_win and (last_win.requests_per_window > 0 or last_win.risk_level != 'LOW'):
+                    idle_window = TrafficWindow(
+                        start_time=now - timedelta(seconds=self.interval_seconds),
+                        end_time=now,
+                        requests_per_window=0.0,
+                        requests_per_second=0.0,
+                        unique_client_count=0.0,
+                        requests_per_client_avg=0.0,
+                        repeated_request_ratio=0.0,
+                        endpoint_diversity=0.0,
+                        avg_inter_request_time=0.0,
+                        traffic_bytes=0.0,
+                        avg_request_size=0.0,
+                        avg_response_time=0.0,
+                        error_4xx_ratio=0.0,
+                        error_5xx_ratio=0.0,
+                        status='NORMAL',
+                        anomaly_score=0.0,
+                        risk_level='LOW'
+                    )
+                    try:
+                        db.session.add(idle_window)
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
                 return
                 
             # Calculate metrics matching the TrafficWindow DB model

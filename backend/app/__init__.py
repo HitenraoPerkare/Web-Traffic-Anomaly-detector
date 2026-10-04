@@ -34,6 +34,9 @@ def create_app():
     from app.routes_api import api_bp
     app.register_blueprint(api_bp)
     
+    from app.routes_admin import admin_bp
+    app.register_blueprint(admin_bp)
+    
     # Setup middleware
     from app.middleware import init_middleware
     init_middleware(app)

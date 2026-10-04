@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechStore Admin - SecOps Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js for real-time graphing -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .risk-LOW { background-color: #d1e7dd; color: #0f5132; }
+        .risk-MEDIUM { background-color: #fff3cd; color: #664d03; }
+        .risk-HIGH { background-color: #f8d7da; color: #842029; }
+        .risk-CRITICAL { background-color: #dc3545; color: #fff; font-weight: bold; }
+        
+        .metric-card {
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        #alert-feed, #attack-feed {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="admin.html">🛡️ SecOps Admin</a>
+            <div class="d-flex text-white align-items-center">
+                <span id="connection-status" class="badge bg-secondary me-3">Connecting...</span>
+                <a href="index.html" class="btn btn-outline-light btn-sm me-2">Storefront</a>
+                <button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Metrics & Controls Column -->
+            <div class="col-md-3">
+                <div class="metric-card bg-white mb-3">
+                    <h5 class="text-muted">Current Risk Level</h5>
+                    <h2 id="risk-display" class="py-2 rounded risk-LOW">LOADING</h2>
+                    <small class="text-muted">Window Anomaly: <span id="anomaly-score">0.0</span></small>
+                </div>
+                
+                <div class="row">
+                    <div class="col-6">
+                        <div class="metric-card bg-white mb-3">
+                            <h6 class="text-muted">Req / Sec</h6>
+                            <h3 id="req-sec">0.0</h3>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-card bg-white mb-3">
+                            <h6 class="text-muted">Error Rate</h6>
+                            <h3 id="error-rate">0%</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Synthetic Traffic Generator Control Panel -->
+                <div class="card shadow-sm mb-4 border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Synthetic Generator</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted">Generate simulated background traffic to test anomaly detection models.</p>
+                        
+                        <div id="gen-status-box" class="alert alert-secondary py-1 text-center">
+                            Status: <strong id="gen-status-text">STOPPED</strong>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success btn-sm d-flex justify-content-between align-items-center" onclick="startGenerator('normal')">
+                                <span>🟢 Normal Traffic</span>
+                                <span class="badge bg-light text-dark">~1 req/s</span>
+                            </button>
+                            <button class="btn btn-danger btn-sm d-flex justify-content-between align-items-center" onclick="startGenerator('attack')">
+                                <span>🔴 Attack Burst (SQLi/XSS)</span>
+                                <span class="badge bg-light text-dark">Attack</span>
+                            </button>
+                            <button class="btn btn-warning btn-sm d-flex justify-content-between align-items-center text-dark" onclick="startGenerator('error')">
+                                <span>⚠️ Error Rate Spike (4xx/5xx)</span>
+                                <span class="badge bg-dark text-white">Errors</span>
+                            </button>
+                            <button class="btn btn-primary btn-sm d-flex justify-content-between align-items-center" onclick="startGenerator('high-freq')">
+                                <span>⚡ High-Frequency Flood (DoS)</span>
+                                <span class="badge bg-light text-dark">High-Freq</span>
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm mt-1" onclick="stopGenerator()">
+                                ⏹️ Stop Generator
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Column -->
+            <div class="col-md-6">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Traffic Volume (Req/s)</h5>
+                        <small class="text-muted">Live Stream (Smoothed Spline)</small>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="trafficChart" height="110"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Active Security Alerts</h5>
+                        <span id="admin-lon-badge" class="badge bg-light text-dark fw-normal" title="Time synchronized via Admin Longitude">
+                            Detecting Admin Longitude...
+                        </span>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush" id="alert-feed">
+                            <li class="list-group-item text-muted">Waiting for alerts...</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Feed Column -->
+            <div class="col-md-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Live Server Requests</h5>
+                        <span class="badge bg-secondary" id="req-count-badge">0</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush" id="request-feed">
+                            <li class="list-group-item text-muted">Waiting for server requests...</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

@@ -115,8 +115,8 @@ def extract_features_from_dict(req: Dict[str, Any]) -> Dict[str, float]:
     tot_len = len(full_payload)
     entropy = calculate_entropy(decoded_payload)
 
-    # Special characters ratio (excluding standard URL & web characters: space, /, ., -, _, =, &, @, +, :)
-    allowed_standard = (' ', '/', '.', '-', '_', '=', '&', '@', '+', ':')
+    # Special characters ratio (excluding standard URL, form & JSON delimiters)
+    allowed_standard = (' ', '/', '.', '-', '_', '=', '&', '@', '+', ':', '{', '}', '"', ',')
     special_cnt = sum(1 for c in decoded_payload if not c.isalnum() and c not in allowed_standard)
     special_ratio = special_cnt / tot_len if tot_len > 0 else 0.0
 
