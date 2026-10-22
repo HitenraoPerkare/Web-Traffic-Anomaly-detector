@@ -3,143 +3,449 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TechStore Admin - SecOps Dashboard</title>
+    <title>WebGuard Admin | SecOps Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Chart.js for real-time graphing -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .risk-LOW { background-color: #d1e7dd; color: #0f5132; }
-        .risk-MEDIUM { background-color: #fff3cd; color: #664d03; }
-        .risk-HIGH { background-color: #f8d7da; color: #842029; }
-        .risk-CRITICAL { background-color: #dc3545; color: #fff; font-weight: bold; }
-        
+        body {
+            background:
+                radial-gradient(circle at top left, rgba(255, 123, 77, 0.14), transparent 18%),
+                linear-gradient(120deg, #040b17 0%, #071d2d 45%, #091924 100%);
+            color: #ebf5ff;
+        }
+
+        .navbar {
+            background: rgba(7, 17, 27, 0.9);
+            border-bottom: 1px solid rgba(122, 188, 255, 0.15);
+        }
+
         .metric-card {
-            border-radius: 8px;
+            background: linear-gradient(180deg, rgba(17, 36, 52, 0.98), rgba(9, 23, 34, 0.96));
+            border: 1px solid rgba(122, 188, 255, 0.12);
+            border-radius: 18px;
             padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 18px 38px rgba(2, 7, 16, 0.35);
+            text-align: center;
+            color: #ebf5ff;
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(17, 36, 52, 0.98), rgba(9, 23, 34, 0.96));
+            border: 1px solid rgba(122, 188, 255, 0.12);
+            border-radius: 18px;
+            box-shadow: 0 18px 38px rgba(2, 7, 16, 0.35);
+            color: #ebf5ff;
+        }
+
+        .card-header {
+            background: rgba(64, 217, 255, 0.08);
+            border-bottom: 1px solid rgba(122, 188, 255, 0.12);
+            color: #ebf5ff;
+            font-weight: 700;
+        }
+
+        .bg-primary, .btn-primary {
+            background: linear-gradient(135deg, #ff7b4d, #ff5a2d) !important;
+            border: none;
+        }
+
+        .bg-danger {
+            background: linear-gradient(135deg, rgba(255, 93, 115, 0.92), rgba(255, 93, 115, 0.72)) !important;
+        }
+
+        .bg-dark {
+            background: rgba(7, 17, 27, 0.9) !important;
+        }
+
+        .text-muted, .small, .list-group-item, #alert-feed, #request-feed {
+            color: #a8bed6 !important;
+        }
+
+        .list-group-item {
+            background: transparent;
+            border-color: rgba(122, 188, 255, 0.08);
+        }
+
+        .list-group-item:hover {
+            background: rgba(64, 217, 255, 0.04);
+        }
+
+        #alert-feed, #request-feed {
+            max-height: 430px;
+            overflow-y: auto;
+        }
+
+        .generator-btn {
+            border-radius: 12px;
+            border: 1px solid rgba(122, 188, 255, 0.12);
+            background: rgba(255,255,255,0.02);
+            color: #ebf5ff;
+        }
+
+        .generator-btn:hover {
+            background: rgba(64, 217, 255, 0.06);
+        }
+
+        .badge {
+            border-radius: 999px;
+        }
+
+        .risk-LOW { background-color: rgba(76, 224, 161, 0.2); color: #baf7d8; }
+        .risk-MEDIUM { background-color: rgba(255, 200, 87, 0.18); color: #ffe1a3; }
+        .risk-HIGH { background-color: rgba(255, 93, 115, 0.18); color: #ffbfd2; }
+        .risk-CRITICAL { background-color: rgba(255, 93, 115, 0.3); color: #fff; font-weight: bold; }
+
+        .app-body {
+            background:
+                radial-gradient(circle at top left, rgba(255, 123, 77, 0.14), transparent 18%),
+                linear-gradient(120deg, #040b17 0%, #071d2d 45%, #091924 100%);
+            color: #ebf5ff;
+        }
+
+        .admin-shell {
+            padding: 2rem 1rem;
+        }
+
+        .panel-card {
+            background: linear-gradient(180deg, rgba(17, 36, 52, 0.98), rgba(9, 23, 34, 0.96));
+            border: 1px solid rgba(122, 188, 255, 0.12);
+            border-radius: 18px;
+            box-shadow: 0 18px 38px rgba(2, 7, 16, 0.35);
+            color: #ebf5ff;
+        }
+
+        .panel-header {
+            background: rgba(64, 217, 255, 0.08);
+            border-bottom: 1px solid rgba(122, 188, 255, 0.12);
+            color: #ebf5ff;
+            font-weight: 700;
+            padding: 1rem;
+            border-top-left-radius: 18px;
+            border-top-right-radius: 18px;
+        }
+
+        .section-kicker {
+            font-size: 0.875rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #a8bed6;
+        }
+
+        .threat-panel {
+            padding: 1.5rem;
             text-align: center;
         }
-        
-        #alert-feed, #attack-feed {
-            max-height: 400px;
-            overflow-y: auto;
+
+        .risk-pill {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 999px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+        }
+
+        .split-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .kpi-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .generator-panel {
+            margin-top: 1.5rem;
+        }
+
+        .status-box {
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .status-idle {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .status-active {
+            background: rgba(76, 224, 161, 0.2);
+        }
+
+        .status-error {
+            background: rgba(255, 93, 115, 0.18);
+        }
+
+        .generator-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .generator-btn {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(122, 188, 255, 0.12);
+            background: rgba(255, 255, 255, 0.02);
+            color: #ebf5ff;
+            font-weight: 500;
+        }
+
+        .generator-btn:hover {
+            background: rgba(64, 217, 255, 0.06);
+        }
+
+        .generator-badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.25rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.875rem;
+            color: #ebf5ff;
+        }
+
+        .chart-panel {
+            position: relative;
+        }
+
+        .chart-surface {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(122, 188, 255, 0.12);
+            margin-top: 1rem;
+        }
+
+        .feed-list {
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+
+        .feed-list li {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(122, 188, 255, 0.08);
+        }
+
+        .feed-empty {
+            padding: 1rem;
+            text-align: center;
+            color: #a8bed6;
+        }
+
+        .model-card {
+            margin-top: 1.5rem;
+        }
+
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .model-stat {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .model-note {
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: #a8bed6;
+            text-align: center;
+        }
+
+        .status-chip {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+
+        .status-chip-muted {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ebf5ff;
+        }
+
+        .status-chip-danger {
+            background: rgba(255, 93, 115, 0.18);
+            color: #fff;
+        }
+
+        .status-chip-info {
+            background: rgba(64, 217, 255, 0.18);
+            color: #fff;
         }
     </style>
 </head>
-<body class="bg-light">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="admin.html">🛡️ SecOps Admin</a>
-            <div class="d-flex text-white align-items-center">
-                <span id="connection-status" class="badge bg-secondary me-3">Connecting...</span>
-                <a href="index.html" class="btn btn-outline-light btn-sm me-2">Storefront</a>
+<body class="app-body">
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid px-3 px-xl-4">
+            <a class="navbar-brand" href="admin.html"><span class="brand-mark">W</span>WebGuard</a>
+            <div class="d-flex align-items-center gap-2">
+                <span id="connection-status" class="badge bg-secondary me-2">Connecting...</span>
+                <a href="index.html" class="btn btn-outline-light btn-sm">Storefront</a>
                 <button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button>
             </div>
         </div>
     </nav>
 
-    <div class="container-fluid mt-4">
-        <div class="row">
-            <!-- Metrics & Controls Column -->
-            <div class="col-md-3">
-                <div class="metric-card bg-white mb-3">
-                    <h5 class="text-muted">Current Risk Level</h5>
-                    <h2 id="risk-display" class="py-2 rounded risk-LOW">LOADING</h2>
-                    <small class="text-muted">Window Anomaly: <span id="anomaly-score">0.0</span></small>
-                </div>
-                
-                <div class="row">
-                    <div class="col-6">
-                        <div class="metric-card bg-white mb-3">
-                            <h6 class="text-muted">Req / Sec</h6>
-                            <h3 id="req-sec">0.0</h3>
+    <div class="container-fluid admin-shell">
+        <div class="row g-4">
+            <div class="col-xl-3">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <span class="section-kicker">Threat posture</span>
+                        <h5>Live risk</h5>
+                    </div>
+
+                    <div class="threat-panel">
+                        <span class="muted-label">Current risk level</span>
+                        <h2 id="risk-display" class="risk-pill risk-LOW">LOADING</h2>
+                        <div class="split-row">
+                            <span class="muted-label">Window anomaly</span>
+                            <strong id="anomaly-score">0.000</strong>
                         </div>
                     </div>
-                    <div class="col-6">
-                        <div class="metric-card bg-white mb-3">
-                            <h6 class="text-muted">Error Rate</h6>
-                            <h3 id="error-rate">0%</h3>
+
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <span class="muted-label">Req / sec</span>
+                            <strong id="req-sec">0.00</strong>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="muted-label">Error rate</span>
+                            <strong id="error-rate">0%</strong>
                         </div>
                     </div>
                 </div>
 
-                <!-- Synthetic Traffic Generator Control Panel -->
-                <div class="card shadow-sm mb-4 border-primary">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">Synthetic Generator</h5>
+                <div class="panel-card generator-panel">
+                    <div class="panel-header">
+                        <span class="section-kicker">Traffic controls</span>
+                        <h5>Synthetic generator</h5>
                     </div>
-                    <div class="card-body">
-                        <p class="small text-muted">Generate simulated background traffic to test anomaly detection models.</p>
-                        
-                        <div id="gen-status-box" class="alert alert-secondary py-1 text-center">
-                            Status: <strong id="gen-status-text">STOPPED</strong>
-                        </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-success btn-sm d-flex justify-content-between align-items-center" onclick="startGenerator('normal')">
-                                <span>🟢 Normal Traffic</span>
-                                <span class="badge bg-light text-dark">~1 req/s</span>
-                            </button>
-                            <button class="btn btn-danger btn-sm d-flex justify-content-between align-items-center" onclick="startGenerator('attack')">
-                                <span>🔴 Attack Burst (SQLi/XSS)</span>
-                                <span class="badge bg-light text-dark">Attack</span>
-                            </button>
-                            <button class="btn btn-warning btn-sm d-flex justify-content-between align-items-center text-dark" onclick="startGenerator('error')">
-                                <span>⚠️ Error Rate Spike (4xx/5xx)</span>
-                                <span class="badge bg-dark text-white">Errors</span>
-                            </button>
-                            <button class="btn btn-primary btn-sm d-flex justify-content-between align-items-center" onclick="startGenerator('high-freq')">
-                                <span>⚡ High-Frequency Flood (DoS)</span>
-                                <span class="badge bg-light text-dark">High-Freq</span>
-                            </button>
-                            <button class="btn btn-outline-secondary btn-sm mt-1" onclick="stopGenerator()">
-                                ⏹️ Stop Generator
-                            </button>
-                        </div>
+
+                    <div id="gen-status-box" class="status-box status-idle">
+                        <span>Status:</span>
+                        <strong id="gen-status-text">STOPPED</strong>
+                    </div>
+
+                    <div class="generator-actions">
+                        <button class="btn generator-btn success" onclick="startGenerator('normal')">
+                            <span>🟢 Normal</span>
+                            <span class="generator-badge">~1 req/s</span>
+                        </button>
+                        <button class="btn generator-btn danger" onclick="startGenerator('attack')">
+                            <span>🔴 Attack burst</span>
+                            <span class="generator-badge">SQLi / XSS</span>
+                        </button>
+                        <button class="btn generator-btn warning" onclick="startGenerator('error')">
+                            <span>⚠️ Error spike</span>
+                            <span class="generator-badge">4xx / 5xx</span>
+                        </button>
+                        <button class="btn generator-btn primary" onclick="startGenerator('high-freq')">
+                            <span>⚡ High-frequency</span>
+                            <span class="generator-badge">DoS</span>
+                        </button>
+                        <button class="btn generator-btn neutral" onclick="stopGenerator()">
+                            ⏹️ Stop generator
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Charts Column -->
-            <div class="col-md-6">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Traffic Volume (Req/s)</h5>
-                        <small class="text-muted">Live Stream (Smoothed Spline)</small>
+            <div class="col-xl-6">
+                <div class="panel-card chart-panel">
+                    <div class="panel-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="section-kicker">Telemetry</span>
+                            <h5>Traffic volume</h5>
+                        </div>
+                        <span id="admin-lon-badge" class="status-chip status-chip-muted">Detecting admin longitude...</span>
                     </div>
-                    <div class="card-body">
-                        <canvas id="trafficChart" height="110"></canvas>
+                    <div class="chart-surface">
+                        <canvas id="trafficChart" height="115"></canvas>
                     </div>
                 </div>
-                
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Active Security Alerts</h5>
-                        <span id="admin-lon-badge" class="badge bg-light text-dark fw-normal" title="Time synchronized via Admin Longitude">
-                            Detecting Admin Longitude...
-                        </span>
+
+                <div class="panel-card">
+                    <div class="panel-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="section-kicker">Security events</span>
+                            <h5>Active alerts</h5>
+                        </div>
+                        <span class="status-chip status-chip-danger">Live</span>
                     </div>
-                    <div class="card-body p-0">
-                        <ul class="list-group list-group-flush" id="alert-feed">
-                            <li class="list-group-item text-muted">Waiting for alerts...</li>
-                        </ul>
-                    </div>
+                    <ul class="feed-list" id="alert-feed">
+                        <li class="feed-empty">Waiting for alerts...</li>
+                    </ul>
                 </div>
             </div>
 
-            <!-- Live Feed Column -->
-            <div class="col-md-3">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Live Server Requests</h5>
-                        <span class="badge bg-secondary" id="req-count-badge">0</span>
+            <div class="col-xl-3">
+                <div class="panel-card model-card">
+                    <div class="panel-header">
+                        <span class="section-kicker">Model health</span>
+                        <h5>ML analytics</h5>
                     </div>
-                    <div class="card-body p-0">
-                        <ul class="list-group list-group-flush" id="request-feed">
-                            <li class="list-group-item text-muted">Waiting for server requests...</li>
-                        </ul>
+
+                    <div class="model-grid">
+                        <div class="model-stat success">
+                            <span>Random Forest</span>
+                            <strong>90.74% Acc</strong>
+                        </div>
+                        <div class="model-stat success">
+                            <span>Attack recall</span>
+                            <strong>94.37%</strong>
+                        </div>
+                        <div class="model-stat neutral">
+                            <span>IsoForest threshold</span>
+                            <strong>0.55+</strong>
+                        </div>
+                        <div class="model-stat neutral">
+                            <span>Window cadence</span>
+                            <strong>10s</strong>
+                        </div>
                     </div>
+
+                    <div class="model-note">
+                        Trained on the CSIC 2010 HTTP dataset and refreshed through the project’s real security pipeline.
+                    </div>
+                </div>
+
+                <div class="panel-card feed-card">
+                    <div class="panel-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="section-kicker">Traffic stream</span>
+                            <h5>Live requests</h5>
+                        </div>
+                        <span class="status-chip status-chip-info" id="req-count-badge">0</span>
+                    </div>
+                    <ul class="feed-list" id="request-feed">
+                        <li class="feed-empty">Waiting for server requests...</li>
+                    </ul>
                 </div>
             </div>
         </div>

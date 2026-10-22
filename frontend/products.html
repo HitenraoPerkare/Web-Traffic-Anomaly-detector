@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TechStore - Products</title>
+    <title>WebGuard | Products</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand" href="index.html">TechStore</a>
+            <a class="navbar-brand" href="index.html"><span class="brand-mark">W</span>WebGuard</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -20,61 +20,59 @@
                     <li class="nav-item"><a class="nav-link" href="search.html">Search</a></li>
                     <li class="nav-item"><a class="nav-link" href="contact.html">Contact</a></li>
                 </ul>
-                <ul class="navbar-nav">
+                <ul class="navbar-nav" id="navAuth">
                     <li class="nav-item"><a class="nav-link" href="login.html">Login</a></li>
                 </ul>
             </div>
         </div>
     </nav>
 
-    <div class="container mt-5">
-        <h2>Our Products</h2>
-        <div class="mb-4">
-            <a href="products.html" class="btn btn-outline-secondary btn-sm" onclick="trackRequest('/api/products')">All</a>
-            <a href="products.html?category=electronics" class="btn btn-outline-secondary btn-sm" onclick="trackRequest('/api/products?category=electronics')">Electronics</a>
-            <a href="products.html?category=home" class="btn btn-outline-secondary btn-sm" onclick="trackRequest('/api/products?category=home')">Home</a>
-            <a href="products.html?category=furniture" class="btn btn-outline-secondary btn-sm" onclick="trackRequest('/api/products?category=furniture')">Furniture</a>
+    <div class="container page-shell">
+        <div class="section-heading">
+            <h2>Our Products</h2>
+            <span class="badge bg-light text-dark px-3 py-2">Curated for secure shopping</span>
         </div>
 
-        <div class="row" id="product-list">
-            <!-- Products will be injected here by app.js -->
+        <div class="filter-pills" aria-label="Product categories">
+            <a href="products.html" class="btn btn-sm active">All</a>
+            <a href="products.html?category=electronics" class="btn btn-sm">Electronics</a>
+            <a href="products.html?category=home" class="btn btn-sm">Home</a>
+            <a href="products.html?category=furniture" class="btn btn-sm">Furniture</a>
         </div>
+
+        <div class="row g-4" id="product-list"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/app.js"></script>
     <script>
-        // Initial page load track
         trackRequest('/api/products' + window.location.search);
-        
-        // Mocking the frontend logic since the backend will just act as an API
+
         const urlParams = new URLSearchParams(window.location.search);
         const category = urlParams.get('category');
-        
+
         const allProducts = [
-            { id: 1, name: 'Wireless Laptop', price: 999.99, category: 'electronics' },
-            { id: 2, name: 'Bluetooth Headphones', price: 149.50, category: 'electronics' },
-            { id: 3, name: 'Coffee Maker', price: 75.00, category: 'home' },
-            { id: 4, name: 'Office Chair', price: 250.00, category: 'furniture' }
+            { id: 1, name: 'Wireless Laptop', price: 999.99, category: 'electronics', description: 'Premium ultraportable workstation for modern teams.' },
+            { id: 2, name: 'Bluetooth Headphones', price: 149.50, category: 'electronics', description: 'Immersive sound with all-day comfort.' },
+            { id: 3, name: 'Coffee Maker', price: 75.00, category: 'home', description: 'Brew the perfect cup with smart automation.' },
+            { id: 4, name: 'Office Chair', price: 250.00, category: 'furniture', description: 'Ergonomic support designed for long workdays.' }
         ];
-        
+
         const products = category ? allProducts.filter(p => p.category === category) : allProducts;
         const container = document.getElementById('product-list');
-        
+
         if (products.length > 0) {
-            products.forEach(p => {
-                container.innerHTML += `
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">${p.name}</h5>
-                            <h6 class="card-subtitle mb-2 text-muted">$${p.price.toFixed(2)}</h6>
-                            <p class="card-text">Category: ${p.category}</p>
-                            <a href="#" class="btn btn-primary" onclick="trackRequest('/api/cart/add', 'POST', {id: ${p.id}})">Add to Cart</a>
-                        </div>
+            container.innerHTML = products.map(p => `
+                <div class="col-md-6 col-xl-4">
+                    <div class="product-card">
+                        <span class="tag">${p.category}</span>
+                        <h5>${p.name}</h5>
+                        <div class="price">$${p.price.toFixed(2)}</div>
+                        <p class="meta">${p.description}</p>
+                        <button class="btn btn-primary" onclick="trackRequest('/api/cart/add', 'POST', {id: ${p.id}})">Add to Cart</button>
                     </div>
-                </div>`;
-            });
+                </div>
+            `).join('');
         } else {
             container.innerHTML = `<div class="col-12"><div class="alert alert-info">No products found for this category.</div></div>`;
         }

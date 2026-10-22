@@ -31,7 +31,7 @@ function updateLongitudeBadge() {
     if (!badge) return;
     const lon = (adminLongitude !== null) ? adminLongitude : (-new Date().getTimezoneOffset() / 4.0);
     const direction = lon >= 0 ? 'E' : 'W';
-    badge.innerText = `📍 Admin Lon: ${Math.abs(lon).toFixed(2)}°${direction} (Local Synchronized)`;
+    badge.innerText = `📍 Admin Lon: ${Math.abs(lon).toFixed(2)}°${direction}`;
 }
 
 /**
@@ -69,12 +69,12 @@ try {
                 datasets: [{
                     label: 'Requests per Second',
                     data: [],
-                    borderColor: 'rgb(13, 110, 253)',
-                    backgroundColor: 'rgba(13, 110, 253, 0.12)',
+                    borderColor: '#40d9ff',
+                    backgroundColor: 'rgba(64, 217, 255, 0.14)',
                     borderWidth: 2.5,
                     pointRadius: 3,
                     pointHoverRadius: 6,
-                    pointBackgroundColor: 'rgb(13, 110, 253)',
+                    pointBackgroundColor: '#40d9ff',
                     tension: 0.4,                    // Smooth Bezier curve
                     cubicInterpolationMode: 'monotone', // Ultra smooth without overshoot
                     fill: 'start'
@@ -103,16 +103,16 @@ try {
                         display: true,
                         title: {
                             display: true,
-                            text: 'Timeline (Seconds Elapsed)',
-                            color: '#495057',
+                            text: 'Timeline (seconds)',
+                            color: '#b1cde5',
                             font: { size: 11, weight: 'bold' }
                         },
                         grid: {
                             display: true,
-                            color: 'rgba(0, 0, 0, 0.05)'
+                            color: 'rgba(255,255,255,0.05)'
                         },
                         ticks: {
-                            color: '#6c757d',
+                            color: '#b4cae0',
                             font: { size: 11 },
                             autoSkip: true,
                             maxTicksLimit: 10
@@ -124,14 +124,14 @@ try {
                         title: {
                             display: true,
                             text: 'Req / sec',
-                            color: '#495057',
+                            color: '#b1cde5',
                             font: { size: 11, weight: 'bold' }
                         },
                         grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
+                            color: 'rgba(255,255,255,0.05)'
                         },
                         ticks: {
-                            color: '#6c757d',
+                            color: '#b4cae0',
                             font: { size: 11 }
                         }
                     }
@@ -140,7 +140,7 @@ try {
         });
     }
 } catch (e) {
-    console.warn("Chart.js initialization failed:", e);
+    console.warn('Chart.js initialization failed:', e);
 }
 
 function updateChart(reqPerSec) {
@@ -186,8 +186,8 @@ async function fetchMetrics() {
         // Update connection status
         const connBadge = document.getElementById('connection-status');
         if (connBadge) {
-            connBadge.className = "badge bg-success";
-            connBadge.innerText = "Connected";
+            connBadge.className = 'badge bg-success';
+            connBadge.innerText = 'Connected';
         }
 
         // Update Generator UI
@@ -196,25 +196,20 @@ async function fetchMetrics() {
         if (genBox && genText) {
             if (data.generator_running) {
                 const mode = (data.generator_mode || 'normal').toLowerCase();
-                let alertClass = 'alert-success';
-                if (mode === 'attack') alertClass = 'alert-danger';
-                else if (mode === 'error') alertClass = 'alert-warning';
-                else if (mode === 'high-freq') alertClass = 'alert-primary';
-
-                genBox.className = `alert py-1 text-center ${alertClass}`;
+                genBox.className = `status-box ${mode === 'attack' ? 'status-danger' : mode === 'error' ? 'status-warning' : mode === 'high-freq' ? 'status-danger' : 'status-running'}`;
                 genText.innerText = `RUNNING (${mode.toUpperCase()})`;
             } else {
-                genBox.className = "alert alert-secondary py-1 text-center";
-                genText.innerText = "STOPPED";
+                genBox.className = 'status-box status-idle';
+                genText.innerText = 'STOPPED';
             }
         }
 
         // Update Top Metrics & Chart
         const windowData = data.window || {};
-        const reqSec = windowData.req_per_sec || 0;
-        const errRate = windowData.error_rate || 0;
-        const riskLevel = windowData.risk_level || 'LOW';
-        const anomalyScore = windowData.anomaly_score || 0;
+        const reqSec = Number(windowData.req_per_sec || 0);
+        const errRate = Number(windowData.error_rate || 0);
+        const riskLevel = String(windowData.risk_level || 'LOW').toUpperCase();
+        const anomalyScore = Number(windowData.anomaly_score || 0);
 
         const reqSecElem = document.getElementById('req-sec');
         const errRateElem = document.getElementById('error-rate');
@@ -222,11 +217,11 @@ async function fetchMetrics() {
         const anomalyElem = document.getElementById('anomaly-score');
 
         if (reqSecElem) reqSecElem.innerText = reqSec.toFixed(2);
-        if (errRateElem) errRateElem.innerText = (errRate * 100).toFixed(1) + '%';
+        if (errRateElem) errRateElem.innerText = `${(errRate * 100).toFixed(1)}%`;
 
         if (riskBadge) {
             riskBadge.innerText = riskLevel;
-            riskBadge.className = `py-2 rounded risk-${riskLevel}`;
+            riskBadge.className = `risk-pill risk-${riskLevel}`;
         }
 
         if (anomalyElem) anomalyElem.innerText = anomalyScore.toFixed(3);
@@ -239,19 +234,24 @@ async function fetchMetrics() {
         if (alertList && data.alerts) {
             if (data.alerts.length > 0) {
                 alertList.innerHTML = '';
-                data.alerts.forEach(a => {
+                data.alerts.forEach((a) => {
                     const formattedTime = formatAdminTime(a.time);
+                    const rowClass = (a.level || '').toUpperCase() === 'CRITICAL' ? 'danger-row' : (a.level || '').toUpperCase() === 'MEDIUM' ? 'warning-row' : 'info-row';
                     alertList.innerHTML += `
-                        <li class="list-group-item list-group-item-danger">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">${a.type}</h6>
-                                <small class="fw-bold">${formattedTime}</small>
+                        <li class="${rowClass}">
+                            <div class="row-top">
+                                <strong>${(a.type || 'ALERT').toUpperCase()}</strong>
+                                <small>${formattedTime}</small>
                             </div>
-                            <p class="mb-1 small">${a.msg}</p>
+                            <div class="d-flex justify-content-between align-items-center gap-2">
+                                <small class="text-uppercase fw-bold">${(a.level || 'INFO').toUpperCase()}</small>
+                                <span class="badge ${((a.level || 'info').toLowerCase() === 'critical' ? 'bg-danger' : (a.level || 'info').toLowerCase() === 'medium' ? 'bg-warning text-dark' : 'bg-info')}">${(a.level || 'INFO').toUpperCase()}</span>
+                            </div>
+                            <div class="mt-2">${a.msg || 'Alert detail unavailable.'}</div>
                         </li>`;
                 });
             } else {
-                alertList.innerHTML = '<li class="list-group-item text-muted">No security alerts triggered yet.</li>';
+                alertList.innerHTML = '<li class="feed-empty">No security alerts triggered yet.</li>';
             }
         }
 
@@ -265,44 +265,42 @@ async function fetchMetrics() {
         if (requestList) {
             if (requests.length > 0) {
                 requestList.innerHTML = '';
-                requests.forEach(req => {
+                requests.forEach((req) => {
                     const isAttack = (req.classification === 'ATTACK');
-                    const itemClass = isAttack ? 'list-group-item-danger' : 'list-group-item-light';
-                    const statusBadgeClass = req.status >= 500 ? 'bg-danger' : req.status >= 400 ? 'bg-warning text-dark' : 'bg-success';
+                    const rowClass = isAttack ? 'danger-row' : 'info-row';
+                    const statusClass = req.status >= 500 ? 'bg-danger' : req.status >= 400 ? 'bg-warning text-dark' : 'bg-success';
                     const clfBadge = isAttack
-                        ? `<span class="badge bg-danger ms-1">ATTACK ${((req.prob || 0) * 100).toFixed(0)}%</span>`
+                        ? `<span class="badge bg-danger ms-1">ATTACK ${(Number(req.prob || 0) * 100).toFixed(0)}%</span>`
                         : `<span class="badge bg-success ms-1">BENIGN</span>`;
-
                     const reqTime = formatAdminTime(req.time);
-
                     requestList.innerHTML += `
-                        <li class="list-group-item ${itemClass} py-2 border-bottom">
-                            <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                        <li class="${rowClass}">
+                            <div class="row-top">
                                 <div>
                                     <span class="badge bg-secondary me-1">${req.method || 'GET'}</span>
-                                    <span class="badge ${statusBadgeClass}">${req.status || 200}</span>
+                                    <span class="badge ${statusClass}">${req.status || 200}</span>
                                     ${clfBadge}
                                 </div>
-                                <small class="text-muted fw-bold">${reqTime}</small>
+                                <small>${reqTime}</small>
                             </div>
-                            <div class="d-flex justify-content-between">
-                                <small class="text-dark font-monospace text-truncate" title="${req.path}"><strong>${req.path}</strong></small>
-                                <small class="text-muted">${req.ip || '127.0.0.1'}</small>
+                            <div class="d-flex justify-content-between gap-2 align-items-center">
+                                <strong class="text-truncate" title="${req.path}">${req.path}</strong>
+                                <small>${req.ip || '127.0.0.1'}</small>
                             </div>
-                            ${req.query ? `<code class="small d-block text-truncate mt-1 text-danger bg-white p-1 rounded border" title="${req.query}">${req.query}</code>` : ''}
+                            ${req.query ? `<code class="d-block mt-2 small text-danger bg-white p-1 rounded">${req.query}</code>` : ''}
                         </li>`;
                 });
             } else {
-                requestList.innerHTML = '<li class="list-group-item text-muted">Waiting for server requests...</li>';
+                requestList.innerHTML = '<li class="feed-empty">Waiting for server requests...</li>';
             }
         }
 
     } catch (err) {
-        console.error("Dashboard polling error:", err);
+        console.error('Dashboard polling error:', err);
         const connBadge = document.getElementById('connection-status');
         if (connBadge) {
-            connBadge.className = "badge bg-danger";
-            connBadge.innerText = "Disconnected";
+            connBadge.className = 'badge bg-danger';
+            connBadge.innerText = 'Disconnected';
         }
     }
 }
@@ -312,7 +310,7 @@ async function startGenerator(mode) {
     const genBox = document.getElementById('gen-status-box');
     const genText = document.getElementById('gen-status-text');
     if (genText) genText.innerText = `STARTING (${mode.toUpperCase()})...`;
-    if (genBox) genBox.className = "alert alert-warning py-1 text-center";
+    if (genBox) genBox.className = 'status-box status-warning';
 
     try {
         const response = await fetch(`${ADMIN_API_BASE}/generator/start`, {
@@ -323,17 +321,17 @@ async function startGenerator(mode) {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         await fetchMetrics(); // Force immediate refresh
     } catch (err) {
-        console.error("Failed to start generator:", err);
-        if (genText) genText.innerText = "ERROR STARTING";
-        if (genBox) genBox.className = "alert alert-danger py-1 text-center";
+        console.error('Failed to start generator:', err);
+        if (genText) genText.innerText = 'ERROR STARTING';
+        if (genBox) genBox.className = 'status-box status-danger';
     }
 }
 
 async function stopGenerator() {
     const genBox = document.getElementById('gen-status-box');
     const genText = document.getElementById('gen-status-text');
-    if (genText) genText.innerText = "STOPPING...";
-    if (genBox) genBox.className = "alert alert-warning py-1 text-center";
+    if (genText) genText.innerText = 'STOPPING...';
+    if (genBox) genBox.className = 'status-box status-warning';
 
     try {
         const response = await fetch(`${ADMIN_API_BASE}/generator/stop`, {
@@ -342,9 +340,9 @@ async function stopGenerator() {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         await fetchMetrics();
     } catch (err) {
-        console.error("Failed to stop generator:", err);
-        if (genText) genText.innerText = "ERROR STOPPING";
-        if (genBox) genBox.className = "alert alert-danger py-1 text-center";
+        console.error('Failed to stop generator:', err);
+        if (genText) genText.innerText = 'ERROR STOPPING';
+        if (genBox) genBox.className = 'status-box status-danger';
     }
 }
 
